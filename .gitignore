@@ -1,0 +1,31 @@
+# Visual Studio
+.vs/
+.vscode/
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.ipch
+
+# NuGet
+packages/
+*.nupkg
+
+# Local development
+appsettings.local.json
+Web.config.local
+secrets.json
+user-secrets/
+
+# Database
+*.mdf
+*.ldf
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
