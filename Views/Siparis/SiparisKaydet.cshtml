@@ -1,0 +1,655 @@
+﻿@model CamSistemWebArayuz.Models.SiparisveEnBoyAdet
+
+@{
+    ViewBag.Title = "CamSistem - Sipariş Yönetimi";
+    Layout = "~/Views/Shared/_HomeLayout.cshtml";
+}
+
+<script src="~/plugins/jquery/jquery.min.js"></script>
+<script src="~/plugins/multi-select/js/jquery.quicksearch.js"></script>
+<script src="~/plugins/multi-select/js/jquery.multi-select.js"></script>
+<script>
+    (function ($) {
+        $(function () {
+            $('.searchable').multiSelect({
+                selectableHeader: "<input type='text' class='search-input form-control' autocomplete='off' placeholder='Aksesuar arama...'>",
+                selectionHeader: "<input type='text' class='search-input form-control' autocomplete='off' placeholder='Seçilen aksesuarlarda arama...'>",
+                afterInit: function (ms) {
+                    var that = this,
+                        $selectableSearch = that.$selectableUl.prev(),
+                        $selectionSearch = that.$selectionUl.prev(),
+                        selectableSearchString = '#' + that.$container.attr('id') + ' .ms-elem-selectable:not(.ms-selected)',
+                        selectionSearchString = '#' + that.$container.attr('id') + ' .ms-elem-selection.ms-selected';
+
+                    that.qs1 = $selectableSearch.quicksearch(selectableSearchString)
+                        .on('keydown', function (e) {
+                            if (e.which === 40) {
+                                that.$selectableUl.focus();
+                                return false;
+                            }
+                        });
+
+                    that.qs2 = $selectionSearch.quicksearch(selectionSearchString)
+                        .on('keydown', function (e) {
+                            if (e.which == 40) {
+                                that.$selectionUl.focus();
+                                return false;
+                            }
+                        });
+                },
+                afterSelect: function () {
+                    this.qs1.cache();
+                    this.qs2.cache();
+                },
+                afterDeselect: function () {
+                    this.qs1.cache();
+                    this.qs2.cache();
+                }
+            });
+        });
+    })(jQuery);
+
+    $(document).ready(function () {
+
+        $('input[type="radio"]').click(function () {
+            if ($(this).attr("value") == "tur_profil") {
+                $("#tureGoreKombinasyon").hide();
+            }
+            if ($(this).attr("value") == "tur_demonte") {
+                $("#tureGoreKombinasyon").show();
+            }
+        });
+
+        $(function () {
+            $('#siparisKaydetForm').click(function (e) {
+                e.preventDefault();
+                var items = new Array();
+                var _altSistemId = $('#AltSistemId').val();
+                var ids = ["1012", "1013", "1014", "1015"];
+                var sistemId = $('#SistemId').val();
+                if (sistemId == 2) {
+                    $("#tblCamCati TBODY TR").each(function () {
+                        var row = $(this);
+                        var item = {};
+                        item.GirilenEn = row.find("TD").eq(0).html();
+                        item.GirilenSolEn = row.find("TD").eq(1).html();
+                        item.GirilenBoy = row.find("TD").eq(2).html();
+                        item.GirilenAdet = row.find("TD").eq(3).html();
+                        items.push(item);
+                    });
+                }else if (ids.includes(_altSistemId)) {
+                    $("#tbl4Surme TBODY TR").each(function () {
+                        var row = $(this);
+                        var item = {};
+                        item.GirilenEn = row.find("TD").eq(0).html();
+                        item.GirilenSolEn = row.find("TD").eq(1).html();
+                        item.GirilenBoy = row.find("TD").eq(2).html();
+                        item.GirilenAdet = row.find("TD").eq(3).html();
+                        items.push(item);
+                    });
+                } else {
+                    $("#tblCustomers TBODY TR").each(function () {
+                        var row = $(this);
+                        var item = {};
+                        item.GirilenEn = row.find("TD").eq(0).html();
+                        item.GirilenBoy = row.find("TD").eq(1).html();
+                        item.GirilenAdet = row.find("TD").eq(2).html();
+                        items.push(item);
+                    });
+                }
+
+                var SiparisModel = {
+                    MusteriId: $('#MusteriId').val(),
+                    RenkId: $('#RenkId').val(),
+                    AltSistemId: $('#AltSistemId').val(),
+                    SistemId: sistemId,
+                    SistemTurId: $('#SistemTur').val(),
+                    SiparisTur: $('.siparisTur:radio:checked').attr('value'),
+                    TahminiTeslim: $('#@Html.IdFor(m => m.SiparisModel.TahminiTeslim)').val(),
+                    SeciliAksesuarlar: $('#custom-headers option:selected').map(function () {
+                    return this.value;
+                    }).get()
+                }
+                if ($('.siparisTur:radio:checked').attr('value') == 'tur_demonte') {
+                    var SiparisCamModel = {
+                    CamKombinasyon: $('#CamKombinasyonId option:selected').text()
+                    }
+                } else {
+                    var SiparisCamModel = {
+                    CamKombinasyon: null
+                    }
+                }
+                if ($("#form_validation").validate().form()) {
+                    $.ajax({
+                        type: 'POST',
+                        data: JSON.stringify({ enBoyAdet: items, siparis: SiparisModel, siparisCam: SiparisCamModel}),
+                        url: '@Url.Action("SiparisKaydet", "Siparis")',
+                        dataType: "json",
+                        contentType: 'application/json; charset=utf-8',
+                        success: function(data) {
+                            if (data == 'OK') {
+                            location.href = '/Siparis/Index';
+                            }
+                        },
+                        error: function(errorObj) {
+                            alert(errorObj.toString());
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    $("body").on("click", "#btnAdd", function () {
+        var txtEn = $("#txtEn");
+        var txtBoy = $("#txtBoy");
+        var txtAdet = $("#txtAdet");
+
+        if (txtEn.val() != "" && txtBoy.val() != "" && txtAdet.val() != "") {
+
+            //Get the reference of the Table's TBODY element.
+            var tBody = $("#tblCustomers > TBODY")[0];
+
+            //Add Row.
+            var row = tBody.insertRow(-1);
+
+            //Add En cell.
+            var cell = $(row.insertCell(-1));
+            cell.html(txtEn.val());
+
+            //Add Boy cell.
+            cell = $(row.insertCell(-1));
+            cell.html(txtBoy.val());
+
+            //Add Adet cell.
+            cell = $(row.insertCell(-1));
+            cell.html(txtAdet.val());
+
+            //Add Button cell.
+            cell = $(row.insertCell(-1));
+            var btnRemove = $("<button class='btn bg-red btn-circle waves-effect waves-circle waves-float'><i class='material-icons'>delete</i></button>");
+            btnRemove.attr("type", "button");
+            btnRemove.attr("onclick", "Remove(this);");
+            btnRemove.val("Remove");
+            cell.append(btnRemove);
+
+            //Clear the TextBoxes.
+            txtEn.val("");
+            txtBoy.val("");
+            txtAdet.val("");
+        } else {
+            alert('Lütfen En, Boy ve Adet alanlarını doldurunuz!');
+        }
+    });
+
+    function Remove(button) {
+        //Determine the reference of the Row using the Button.
+        var row = $(button).closest("TR");
+        if (confirm("Seçili satırı silmek istediğinize emin misiniz?")) {
+        //Get the reference of the Table.
+        var table = $("#tblCustomers")[0];
+
+        //Delete the Table row using it's Index.
+        table.deleteRow(row[0].rowIndex);
+        }
+    };
+
+    $("body").on("click", "#btnSurmeAdd", function () {
+        var txtEn = $("#txtSurmeEn");
+        var txtSolEn = $("#txtSurmeSolEn");
+        var txtBoy = $("#txtSurmeBoy");
+        var txtAdet = $("#txtSurmeAdet");
+
+        if (txtEn.val() != "" && txtSolEn.val() != "" && txtBoy.val() != "" && txtAdet.val() != "") {
+
+            //Get the reference of the Table's TBODY element.
+            var tBody = $("#tbl4Surme > TBODY")[0];
+
+            //Add Row.
+            var row = tBody.insertRow(-1);
+
+            //Add En cell.
+            var cell = $(row.insertCell(-1));
+            cell.html(txtEn.val());
+
+            //Add Sol En cell.
+            var cell = $(row.insertCell(-1));
+            cell.html(txtSolEn.val());
+
+            //Add Boy cell.
+            cell = $(row.insertCell(-1));
+            cell.html(txtBoy.val());
+
+            //Add Adet cell.
+            cell = $(row.insertCell(-1));
+            cell.html(txtAdet.val());
+
+            //Add Button cell.
+            cell = $(row.insertCell(-1));
+            var btnRemove = $("<button class='btn bg-red btn-circle waves-effect waves-circle waves-float'><i class='material-icons'>delete</i></button>");
+            btnRemove.attr("type", "button");
+            btnRemove.attr("onclick", "RemoveSurme(this);");
+            btnRemove.val("Remove");
+            cell.append(btnRemove);
+
+            //Clear the TextBoxes.
+            txtEn.val("");
+            txtSolEn.val("");
+            txtBoy.val("");
+            txtAdet.val("");
+        } else {
+            alert('Lütfen En, Boy ve Adet alanlarını doldurunuz!');
+        }
+    });
+
+    function RemoveSurme(button) {
+        //Determine the reference of the Row using the Button.
+        var row = $(button).closest("TR");
+        if (confirm("Seçili satırı silmek istediğinize emin misiniz?")) {
+            //Get the reference of the Table.
+            var table = $("#tbl4Surme")[0];
+
+            //Delete the Table row using it's Index.
+            table.deleteRow(row[0].rowIndex);
+        }
+    };
+
+    $("body").on("click", "#btnCamCatiAdd", function () {
+        var txtEn = $("#txtCamCatiEn");
+        var txtSolEn = $("#txtCamCatiSolEn");
+        var txtBoy = $("#txtCamCatiBoy");
+        var txtAdet = $("#txtCamCatiAdet");
+
+        if (txtEn.val() != "" && txtSolEn.val() != "" && txtBoy.val() != "" && txtAdet.val() != "") {
+
+            //Get the reference of the Table's TBODY element.
+            var tBody = $("#tblCamCati > TBODY")[0];
+
+            //Add Row.
+            var row = tBody.insertRow(-1);
+
+            //Add En cell.
+            var cell = $(row.insertCell(-1));
+            cell.html(txtEn.val());
+
+            //Add Sol En cell.
+            var cell = $(row.insertCell(-1));
+            cell.html(txtSolEn.val());
+
+            //Add Boy cell.
+            cell = $(row.insertCell(-1));
+            cell.html(txtBoy.val());
+
+            //Add Adet cell.
+            cell = $(row.insertCell(-1));
+            cell.html(txtAdet.val());
+
+            //Add Button cell.
+            cell = $(row.insertCell(-1));
+            var btnRemove = $("<button class='btn bg-red btn-circle waves-effect waves-circle waves-float'><i class='material-icons'>delete</i></button>");
+            btnRemove.attr("type", "button");
+            btnRemove.attr("onclick", "RemoveCamCati(this);");
+            btnRemove.val("Remove");
+            cell.append(btnRemove);
+
+            //Clear the TextBoxes.
+            txtEn.val("");
+            txtSolEn.val("");
+            txtBoy.val("");
+            txtAdet.val("");
+        } else {
+            alert('Lütfen giriş alanlarını doldurunuz!');
+        }
+    });
+
+    function RemoveCamCati(button) {
+        //Determine the reference of the Row using the Button.
+        var row = $(button).closest("TR");
+        if (confirm("Seçili satırı silmek istediğinize emin misiniz?")) {
+            //Get the reference of the Table.
+            var table = $("#tblCamCati")[0];
+
+            //Delete the Table row using it's Index.
+            table.deleteRow(row[0].rowIndex);
+        }
+    };
+
+    function SistemTurundenAltSistem(_TurId) {
+        var _SistemId = $('#SistemId option:selected').val();
+        var url = '/Siparis/TureGoreAltSistemGetir/';
+
+        $.ajax({
+            url: url,
+            data: { SistemId: _SistemId, TurId: _TurId },
+            cache: false,
+            type: 'POST',
+            success: function (data) {
+                $('#AltSistemId option').remove();
+                $('#AltSistemId').prop('disabled', false);
+                var markup = '<option value="-1">Alt Sistem Seçiniz...</option>';
+                $('#AltSistemId').append(markup);
+                $('#AltSistemId').selectpicker('refresh');
+
+                for (var x = 0; x < data.length; x++) {
+                    markup = '<option value="' + data[x].Value + '">' + data[x].Text + '</option>';
+                    $('#AltSistemId').append(markup);
+                    $('#AltSistemId').selectpicker('refresh');
+                }
+            },
+            error: function (reponse) {
+                alert('error : ' + reponse);
+            }
+        });
+    }
+
+    function AltSistemGetir(_SistemId) {
+        var url = '/Siparis/SistemAltturGetir/';
+
+        if (_SistemId == 2) {
+            $("#tblCamCati").show();
+            $("#tblCustomers").hide();
+        }
+        else {
+            $("#tblCamCati").hide();
+            $("#tblCustomers").show();
+        }
+
+        $.ajax({
+            url: url,
+            data: { SistemId: _SistemId },
+            cache: false,
+            type: 'POST',
+            success: function (data) {
+                var turKontrol = data.SistemTuruVarMi;
+
+                if (turKontrol) {
+                    $('#AltSistemId').attr("disabled", "disabled");
+                    $('#AltSistemId option').remove();
+                    var procemessage = '<option value="-1">Sistem Türü Seçiniz...</option>';
+                    $('#AltSistemId').append(procemessage);
+                    $('#AltSistemId').selectpicker('refresh');
+
+                    $('#SistemTur').selectpicker('refresh');
+                    $('#SistemTur option').remove();
+                    $('#SistemTur').prop('disabled', false);
+
+                    var turListesi = data.SistemTurListesi;
+                    var markup = '<option value="-1">Sistem Türü Seçiniz...</option>';
+                    $('#SistemTur').append(markup);
+                    $('#SistemTur').selectpicker('refresh');
+                    for (var x = 0; x < turListesi.length; x++) {
+                        markup = '<option value="' + turListesi[x].Value + '">' + turListesi[x].Text + '</option>';
+                        $('#SistemTur').append(markup);
+                        $('#SistemTur').selectpicker('refresh');
+                    }
+                } else {
+                    $("#SistemTur").attr("disabled", "disabled");
+                    var procemessage = '<option value="-1"> Sistem Türü Yok! </option>';
+                    $('#SistemTur option').remove();
+                    $('#SistemTur').append(procemessage);
+                    $('#SistemTur').selectpicker('refresh');
+
+                    $('#AltSistemId option').remove();
+                    $('#AltSistemId').prop('disabled', false);
+                    var altSistemListesi = data.AltSistemListesi;
+                    var markup = '<option value="-1">Alt Sistem Seçiniz...</option>';
+                    $('#AltSistemId').append(markup);
+                    $('#AltSistemId').selectpicker('refresh');
+
+                    for (var x = 0; x < altSistemListesi.length; x++) {
+                        markup = '<option value="' + altSistemListesi[x].Value + '">' + altSistemListesi[x].Text + '</option>';
+                        $('#AltSistemId').append(markup);
+                        $('#AltSistemId').selectpicker('refresh');
+                    }
+                }
+
+            },
+            error: function (reponse) {
+                alert('error : ' + reponse);
+            }
+        });
+    }
+
+    function SurmeIcinTablo(_altTurId) {
+        var ids = ["1012","1013","1014", "1015"];
+        if (ids.includes(_altTurId)) {
+            $("#tbl4Surme").show();
+            $("#tblCustomers").hide();
+        }
+        else {
+            $("#tbl4Surme").hide();
+            $("#tblCustomers").show();
+        }
+    }
+</script>
+<div class="row clearfix">
+    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+        <div class="card">
+            <div class="header">
+                <h2>
+                    Yeni Sipariş Oluştur
+                </h2>
+            </div>
+            <div class="body">
+                @using (Html.BeginForm("SiparisKaydet", "Siparis", FormMethod.Post, new { id = "form_validation" }))
+                {
+                    @Html.ValidationSummary(true)
+                    <div class="row clearfix">
+                        <div class="col-md-4">
+                            <p>
+                                <b>Sistem Listesi</b>
+                            </p>
+                            <div class="form-group">
+                                <div class="form-line">
+                                    @Html.DropDownListFor(model => model.SiparisModel.SistemId, new SelectList(ViewBag.Sistemler, "Id", "SistemAdi"), "Sistem Seçiniz...", new { @class = "form-control show-tick", @id = "SistemId", @onchange = "javascript:AltSistemGetir(this.value);", @required = "required" })
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                        </div>
+                        <div class="col-md-4">
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row clearfix">
+    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+        <div class="card">
+            <div class="body">
+                <div class="row clearfix">
+                    <table id="tblCustomers" class="table" cellpadding="0" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th style="width:150px">Girilen En (mm)</th>
+                                <th style="width:150px">Girilen Boy (mm)</th>
+                                <th style="width:150px">Girilen Adet</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.SiparisEnBoyAdetList)
+                            {
+                                <tr>
+                                    <td>@item.GirilenEn</td>
+                                    <td>@item.GirilenBoy</td>
+                                    <td>@item.GirilenAdet</td>
+                                    <td><input type="button" value="Remove" onclick="Remove(this)" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td>
+                                    <div class="form-group form-float">
+                                        <div class="form-line">
+                                            <input type="text" class="form-control" onkeypress="return isNumberKey(event)" id="txtEn" />
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="form-group form-float">
+                                        <div class="form-line">
+                                            <input type="text" class="form-control" onkeypress="return isNumberKey(event)" id="txtBoy" />
+                                        </div>
+                                    </div>
+
+                                </td>
+                                <td>
+                                    <div class="form-group form-float">
+                                        <div class="form-line">
+                                            <input type="text" class="form-control" onkeypress="return isNumberKey(event)" id="txtAdet" />
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn bg-green btn-circle waves-effect waves-circle waves-float" id="btnAdd" value="Add">
+                                        <i class="material-icons">add</i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <table id="tbl4Surme" class="table" style="display:none;" cellpadding="0" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th style="width:150px">Girilen Sağ En</th>
+                                <th style="width:150px">Girilen Sol En</th>
+                                <th style="width:150px">Girilen Boy</th>
+                                <th style="width:150px">Girilen Adet</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.SiparisEnBoyAdetList)
+                            {
+                                <tr>
+                                    <td>@item.GirilenEn</td>
+                                    <td>@item.GirilenSolEn</td>
+                                    <td>@item.GirilenBoy</td>
+                                    <td>@item.GirilenAdet</td>
+                                    <td><input type="button" value="Remove" onclick="RemoveSurme(this)" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td>
+                                    <div class="form-group form-float">
+                                        <div class="form-line">
+                                            <input type="text" class="form-control" onkeypress="return isNumberKey(event)" id="txtSurmeEn" />
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="form-group form-float">
+                                        <div class="form-line">
+                                            <input type="text" class="form-control" onkeypress="return isNumberKey(event)" id="txtSurmeSolEn" />
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="form-group form-float">
+                                        <div class="form-line">
+                                            <input type="text" class="form-control" onkeypress="return isNumberKey(event)" id="txtSurmeBoy" />
+                                        </div>
+                                    </div>
+
+                                </td>
+                                <td>
+                                    <div class="form-group form-float">
+                                        <div class="form-line">
+                                            <input type="text" class="form-control" onkeypress="return isNumberKey(event)" id="txtSurmeAdet" />
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn bg-green btn-circle waves-effect waves-circle waves-float" id="btnSurmeAdd" value="Add">
+                                        <i class="material-icons">add</i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <table id="tblCamCati" class="table" style="display:none;" cellpadding="0" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th style="width:150px">Sistem Genişlik</th>
+                                <th style="width:150px">Sistem Açınım</th>
+                                <th style="width:150px">Oluk Altı Yükseklik</th>
+                                <th style="width:150px">Kanat Sayısı</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.SiparisEnBoyAdetList)
+                            {
+                                <tr>
+                                    <td>@item.GirilenEn</td>
+                                    <td>@item.GirilenSolEn</td>
+                                    <td>@item.GirilenBoy</td>
+                                    <td>@item.GirilenAdet</td>
+                                    <td><input type="button" value="Remove" onclick="RemoveCmaCati(this)" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td>
+                                    <div class="form-group form-float">
+                                        <div class="form-line">
+                                            <input type="text" class="form-control" onkeypress="return isNumberKey(event)" id="txtCamCatiEn" />
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="form-group form-float">
+                                        <div class="form-line">
+                                            <input type="text" class="form-control" onkeypress="return isNumberKey(event)" id="txtCamCatiSolEn" />
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="form-group form-float">
+                                        <div class="form-line">
+                                            <input type="text" class="form-control" onkeypress="return isNumberKey(event)" id="txtCamCatiBoy" />
+                                        </div>
+                                    </div>
+
+                                </td>
+                                <td>
+                                    <div class="form-group form-float">
+                                        <div class="form-line">
+                                            <input type="text" class="form-control" onkeypress="return isNumberKey(event)" id="txtCamCatiAdet" />
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn bg-green btn-circle waves-effect waves-circle waves-float" id="btnCamCatiAdd" value="Add">
+                                        <i class="material-icons">add</i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row clearfix">
+    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+        <div class="card">
+            <div class="body">
+                <div class="row clearfix">
+                    <button type="submit" id="siparisKaydetForm" class="btn bg-green waves-effect">KAYDET</button>
+                    <button type="button" class="btn bg-black waves-effect waves-light" onclick="location.href='@Url.Action("Index", "Siparis")'">SİPARİŞ LİSTESİNE DÖN</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
