@@ -130,10 +130,11 @@
                                         @Html.DisplayFor(modelItem => item.AksesuarModel.AksesuarBirim)
                                     </td>
                                     <td>
-                                        @if (item.AksesuarModel.AksesuarGorsel != null)
-                                        {
-                                            @Html.Raw("<img class='img-responsive img-thumbnailProf' src = '" + Url.Content("~/images/aksesuaricons/" + item.AksesuarModel.AksesuarGorsel) + "' />")
-                                        }
+                                        @if (!string.IsNullOrEmpty(item.AksesuarModel.AksesuarGorsel))
+{
+    var fileName = System.IO.Path.GetFileName(item.AksesuarModel.AksesuarGorsel);
+                                        <img class="img-responsive img-thumbnailProf" src="@Url.Content("~/images/aksesuaricons/" + fileName)" alt="Aksesuar">
+}
                                     </td>
                                     <td>
                                         @Html.DisplayFor(modelItem => item.AksesuarModel.AksesuarKalipNo)
